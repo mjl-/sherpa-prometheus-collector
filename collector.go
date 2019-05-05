@@ -1,40 +1,37 @@
-// Sherpa-prometheus-collector provides a collector of statistics for incoming Sherpa requests that are exported over to Prometheus.
-//
-// Dependencies are not included, you'll want to import "github.com/prometheus/client_golang/prometheus".
-//
-// Use with the Sherpa library at https://bitbucket.org/mjl/sherpa and the Prometheus library at https://github.com/prometheus/client_golang.
-package collector
+// Package sherpaprom provides a collector of statistics for incoming Sherpa requests that are exported over to Prometheus.
+package sherpaprom
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// Collector implements the Collector interface from the sherpa package.
 type Collector struct {
 	requests, errors, serverErrors *prometheus.CounterVec
 	protocolErrors, badFunction, javascript, json	prometheus.Counter
 	requestDuration *prometheus.HistogramVec
 }
 
-/*
-Create new collector for the named api. Metrics will be labeled with "api". The following prometheus metrics are automatically registered on reg, or the default prometheus registerer if reg is nil:
-
-	sherpa_requests_total
-		calls, per function
-	sherpa_errors_total
-		error responses (including server errors), per function
-	sherpa_servererrors_total
-		server error responses, per function
-	sherpa_protocol_errors_total
-		incorrect requests
-	sherpa_bad_function_total
-		unknown functions called
-	sherpa_javascript_request_total
-		requests to sherpa.js
-	sherpa_json_request_total
-		requests to sherpa.json
-	sherpa_requests_duration_seconds
-		histogram for .01, .05, .1, .2, .5, 1, 2, 4, 8, 16, per function
-*/
+// NewCollector creates a new collector for the named API.
+// Metrics will be labeled with "api".
+// The following prometheus metrics are automatically registered on reg, or the default prometheus registerer if reg is nil:
+//
+// 	sherpa_requests_total
+// 		calls, per function
+// 	sherpa_errors_total
+// 		error responses (including server errors), per function
+// 	sherpa_servererrors_total
+// 		server error responses, per function
+// 	sherpa_protocol_errors_total
+// 		incorrect requests
+// 	sherpa_bad_function_total
+// 		unknown functions called
+// 	sherpa_javascript_request_total
+// 		requests to sherpa.js
+// 	sherpa_json_request_total
+// 		requests to sherpa.json
+// 	sherpa_requests_duration_seconds
+// 		histogram for .01, .05, .1, .2, .5, 1, 2, 4, 8, 16, per function
 func NewCollector(api string, reg prometheus.Registerer) (*Collector, error) {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
@@ -104,27 +101,27 @@ func NewCollector(api string, reg prometheus.Registerer) (*Collector, error) {
 	return c, err
 }
 
-// Increase "sherpa_bad_function_total" count by one.
+// BadFunction increases counter "sherpa_bad_function_total" by one.
 func (c *Collector) BadFunction() {
 	c.badFunction.Inc()
 }
 
-// Increase "sherpa_protocol_errors_total" by one.
+// ProtocolError increases counter "sherpa_protocol_errors_total" by one.
 func (c *Collector) ProtocolError() {
 	c.protocolErrors.Inc()
 }
 
-// Increase "sherpa_json_requests_total" by one.
+// JSON increases "sherpa_json_requests_total" by one.
 func (c *Collector) JSON() {
 	c.json.Inc()
 }
 
-// Increase "sherpa_javascript_requests_total" sherpa.js by one.
+// JavaScript increases "sherpa_javascript_requests_total" by one.
 func (c *Collector) JavaScript() {
 	c.javascript.Inc()
 }
 
-// Increase "sherpa_requests_total" and possibly "sherpa_error_total" and "sherpa_servererror_total" by one, and register the function call duration in "sherpa_requests_duration_seconds".
+// FunctionCall increases "sherpa_requests_total" by one, adds the call duration to "sherpa_requests_duration_seconds" and possibly increases "sherpa_error_total" and "sherpa_servererror_total".
 func (c *Collector) FunctionCall(name string, error bool, serverError bool, duration float64) {
 	c.requests.WithLabelValues(name).Inc()
 	if error {
